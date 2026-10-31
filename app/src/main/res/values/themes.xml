@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.PersonalMAGI" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/logo_bg</item>
+        <item name="android:statusBarColor">@color/magi_bg</item>
+        <item name="android:navigationBarColor">@color/magi_bg</item>
+        <!-- Android 12+ system splash: the leaf mark on the logo's background -->
+        <item name="android:windowSplashScreenBackground">@color/logo_bg</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/logo_bg</item>
+    </style>
+    <color name="magi_bg">#070707</color>
+    <color name="logo_bg">#161616</color>
+    <color name="magi_amber">#FF9A1F</color>
+</resources>

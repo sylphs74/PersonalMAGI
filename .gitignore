@@ -1,0 +1,14 @@
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.cxx/
+.externalNativeBuild/
+captures/
+app/src/main/cpp/llama.cpp
+# signing material never goes into the repository
+*.jks
+*.keystore
+*.p12
+signing/

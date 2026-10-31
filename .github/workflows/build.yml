@@ -1,0 +1,144 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# nothing by default; the job below asks only for what it needs
+permissions: {}
+
+concurrency:
+  group: build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write          # create the release and push the ci-logs branch
+    env:
+      LLAMA_TAG: b11982
+      NDK_VERSION: 29.0.13113456
+      CMAKE_VERSION: 3.31.6
+      OPENCL_TAG: v2026.05.29
+    defaults:
+      run:
+        shell: bash -o pipefail {0}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Prepare log dir
+        run: mkdir -p ci-log && echo "run ${GITHUB_RUN_NUMBER} sha ${GITHUB_SHA}" > ci-log/status.txt
+
+      - name: Check model catalog against Hugging Face
+        run: python3 scripts/check_models.py 2>&1 | tee ci-log/models.txt
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install NDK and CMake
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;${NDK_VERSION}" "cmake;${CMAKE_VERSION}" "platforms;android-36" "build-tools;36.0.0" 2>&1 | tail -20 | tee ci-log/sdk.txt
+
+      - name: Fetch llama.cpp
+        run: ./scripts/fetch-llama.sh
+
+      - name: Build OpenCL link stub for Android (Khronos headers + ICD loader)
+        run: |
+          NDK="$ANDROID_HOME/ndk/${NDK_VERSION}"
+          SDK="$RUNNER_TEMP/opencl-sdk"; mkdir -p "$SDK/include" "$SDK/lib"
+          git clone -q --depth 1 -b "$OPENCL_TAG" https://github.com/KhronosGroup/OpenCL-Headers "$RUNNER_TEMP/ocl-h"
+          git clone -q --depth 1 -b "$OPENCL_TAG" https://github.com/KhronosGroup/OpenCL-ICD-Loader "$RUNNER_TEMP/ocl-icd"
+          cp -r "$RUNNER_TEMP/ocl-h/CL" "$SDK/include/"
+          cmake -S "$RUNNER_TEMP/ocl-icd" -B "$RUNNER_TEMP/ocl-icd/build" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=31 -DANDROID_STL=c++_shared \
+            -DCMAKE_PLATFORM_NO_VERSIONED_SONAME=ON -DBUILD_TESTING=OFF \
+            -DOPENCL_ICD_LOADER_HEADERS_DIR="$SDK/include"
+          cmake --build "$RUNNER_TEMP/ocl-icd/build"
+          cp "$RUNNER_TEMP/ocl-icd/build/libOpenCL.so" "$SDK/lib/"
+          "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -d "$SDK/lib/libOpenCL.so" | grep SONAME | tee ci-log/opencl.txt
+          grep -q '\[libOpenCL.so\]' ci-log/opencl.txt
+          echo "POCKETMAGI_OPENCL_SDK=$SDK" >> "$GITHUB_ENV"
+
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+
+      - name: Compile Kotlin first (fails fast before the long native build)
+        run: ./gradlew --no-daemon :app:compileReleaseKotlin 2>&1 | tee ci-log/gradle-full.txt
+
+      - name: Decode signing key from repository secrets
+        env:
+          KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            mkdir -p "$RUNNER_TEMP/signing"
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/signing/release.jks"
+            echo "SIGNING_KEYSTORE=$RUNNER_TEMP/signing/release.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::SIGNING_KEYSTORE_BASE64 is not set: the APK is signed with a temporary debug key"
+          fi
+
+      - name: Build release APK
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon :app:assembleRelease 2>&1 | tee ci-log/gradle-full.txt
+
+      - name: Remove signing key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/signing"
+
+      - name: Rename APK
+        run: |
+          mkdir -p out
+          cp app/build/outputs/apk/release/app-release.apk "out/PersonalMAGI-0.1.${GITHUB_RUN_NUMBER}.apk"
+          ls -la out | tee ci-log/apk.txt
+          unzip -l out/*.apk | grep '\.so$' | tee -a ci-log/apk.txt
+          R="$ANDROID_HOME/ndk/${NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          f=$(find app/build -name libggml-opencl.so -path '*arm64-v8a*' | head -1)
+          if [ -n "$f" ]; then echo "== $f" >> ci-log/apk.txt; "$R" -d "$f" | grep NEEDED | tee -a ci-log/apk.txt; fi
+          # which launcher icon the APK really declares, and what it points to
+          A="$ANDROID_HOME/build-tools/36.0.0/aapt2"
+          "$A" dump badging out/*.apk | grep -E "^application|icon" | tee ci-log/icon.txt || true
+          "$A" dump xmltree --file res/mipmap-anydpi-v26/ic_pocketmagi.xml out/*.apk 2>&1 | head -20 | tee -a ci-log/icon.txt || true
+          unzip -l out/*.apk | grep -E "res/.*(pocketmagi|launcher)" | tee -a ci-log/icon.txt || true
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: PersonalMAGI-apk
+          path: out/*.apk
+          retention-days: 30
+
+      - name: Publish as release (easy download from the phone)
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: PersonalMAGI 0.1.${{ github.run_number }}
+          files: out/*.apk
+          prerelease: true
+
+      - name: Publish logs to ci-logs branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "conclusion: ${{ job.status }}" >> ci-log/status.txt
+          # keep the useful tail; full gradle log can be huge
+          if [ -f ci-log/gradle-full.txt ]; then
+            grep -n -E "^e: |error:|FAILED|What went wrong|Could not|BUILD (SUCCESSFUL|FAILED)" ci-log/gradle-full.txt | head -200 > ci-log/gradle-errors.txt || true
+            tail -400 ci-log/gradle-full.txt > ci-log/gradle-tail.txt
+            rm ci-log/gradle-full.txt
+          fi
+          cd ci-log
+          git init -q -b ci-logs
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -q -m "logs for run ${GITHUB_RUN_NUMBER}"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ci-logs

@@ -1,24 +1,24 @@
 # PersonalMAGI
 
 Android（8GB RAM 以上の端末を想定）の MAGI風の合議AIアプリ。端末内の日本製LLMで動き、役割ごとにクラウドAI（Claude / ChatGPT / Gemini / Perplexity）も選べる。
-中立の提案役が質問を「仮説」にまとめ、3体の日本製LLMがその仮説を独立に審議（承認／否決＋対案）し、多数決で **可決 / 否決 / 保留** を出したうえで統合回答をまとめる。
+中立の提案役が質問を「仮説」にまとめ、3体のLLMがその仮説を独立に審議（承認／否決＋対案）し、多数決で **可決 / 否決 / 保留** を出したうえで統合回答をまとめる。
 
 ## 構成
 
-| 役割 | モデル | 開発元 | ライセンス |
-|---|---|---|---|
-| MELCHIOR（科学者） | Sarashina2.2 3B Instruct | SB Intuitions | MIT |
-| BALTHASAR（母） | LLM-jp-3.1 1.8B Instruct4 | 国立情報学研究所 | Apache-2.0 |
-| CASPER（女） | Rakuten AI 2.0 mini Instruct（1.5B） | 楽天グループ | Apache-2.0 |
-| 提案役（中立・仮説の作成のみ） | Gemma-2-Llama-Swallow 2B（1.6GB） | 東京科学大学・産総研（Google Gemma 2ベース） | Gemma Terms of Use / Llama 3.3 License |
+| 役割 | モデル | ライセンス |
+|---|---|---|
+| MELCHIOR（科学者） | Sarashina2.2 3B Instruct | MIT |
+| BALTHASAR（母） | LLM-jp-3.1 1.8B Instruct4 | Apache-2.0 |
+| CASPER（女） | Rakuten AI 2.0 mini Instruct（1.5B） | Apache-2.0 |
+| 提案役（中立・仮説の作成のみ） | Gemma-2-Llama-Swallow 2B（1.6GB） | Gemma Terms of Use / Llama 3.3 License |
 
 高性能モデル（メモリ10GB以上の端末向け、「モデル」タブで賢者ごとに自動／標準／高性能を選択）:
 
-| 役割 | 高性能モデル | 開発元 | ライセンス |
-|---|---|---|---|
-| MELCHIOR | Llama 3.1 Swallow 8B Instruct v0.5（4.7GB） | 東京科学大学・産総研（Meta Llamaベース） | Llama 3.1 Community License |
-| BALTHASAR | LLM-jp-3 7.2B Instruct3（4.2GB） | 国立情報学研究所（ゼロから学習） | Apache-2.0 |
-| CASPER | Rakuten AI 7B Instruct（4.2GB） | 楽天グループ（Mistralベース） | Apache-2.0 |
+| 役割 | 高性能モデル  | ライセンス |
+|---|---|---|
+| MELCHIOR | Llama 3.1 Swallow 8B Instruct v0.5（4.7GB） | Llama 3.1 Community License |
+| BALTHASAR | LLM-jp-3 7.2B Instruct3（4.2GB） | Apache-2.0 |
+| CASPER | Rakuten AI 7B Instruct（4.2GB） | Apache-2.0 |
 
 - 推論: llama.cpp（`b11982`）を NDK でネイティブ組み込み。量子化 GGUF を使用
 - GPU: Adreno 7xx/8xx（Snapdragon 8 Gen 3 / 8s Gen 4 / 8 Elite など）では OpenCL で全層を GPU に載せる。使えない端末（Adreno 6xx など）では自動で CPU 実行。設定で切り替え可能。各賢者のパネルに実際の実行先（GPU/CPU）を表示

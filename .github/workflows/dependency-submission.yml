@@ -1,0 +1,42 @@
+# Sends the resolved Gradle dependency graph (including transitive deps) to GitHub
+# so Dependabot alerts cover everything. Replaces GitHub's "Automatic dependency
+# submission", which fails on Android projects because it cannot accept SDK licences.
+name: Dependency submission
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# nothing by default; the job below asks only for what it needs
+permissions: {}
+
+concurrency:
+  group: dependency-submission
+  cancel-in-progress: true
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write          # required by the dependency submission API
+    env:
+      NDK_VERSION: 29.0.13113456
+      CMAKE_VERSION: 3.31.6
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Accept Android SDK licences and install the same SDK parts as the build
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;${NDK_VERSION}" "cmake;${CMAKE_VERSION}" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+
+      - uses: gradle/actions/dependency-submission@ed408507eac070d1f99cc633dbcf757c94c7933a # v4

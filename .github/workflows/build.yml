@@ -118,7 +118,7 @@ jobs:
           retention-days: 30
 
       - name: Publish as release (easy download from the phone)
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: build-${{ github.run_number }}
           name: PersonalMAGI 0.1.${{ github.run_number }}

@@ -1,0 +1,127 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+
+> Task :app:configureCMakeRelease[arm64-v8a]
+C/C++: CMAKE_BUILD_TYPE=Release
+C/C++: CMake Warning (dev) at /usr/local/lib/android/sdk/cmake/3.31.6/share/cmake-3.31/Modules/FetchContent.cmake:1953 (message):
+C/C++:   Calling FetchContent_Populate(kleidiai) is deprecated, call
+C/C++:   FetchContent_MakeAvailable(kleidiai) instead.  Policy CMP0169 can be set to
+C/C++:   OLD to allow FetchContent_Populate(kleidiai) to be called directly for now,
+C/C++:   but the ability to call it with declared details will be removed completely
+C/C++:   in a future version.
+C/C++: Call Stack (most recent call first):
+C/C++:   llama.cpp/ggml/src/ggml-cpu/CMakeLists.txt:680 (FetchContent_Populate)
+C/C++:   llama.cpp/ggml/src/CMakeLists.txt:484 (ggml_add_cpu_backend_variant_impl)
+C/C++:   llama.cpp/ggml/src/CMakeLists.txt:536 (ggml_add_cpu_backend_variant)
+C/C++: This warning is for project developers.  Use -Wno-dev to suppress it.
+
+> Task :app:buildCMakeRelease[arm64-v8a]
+C/C++: ninja: Entering directory `/home/runner/work/PersonalMAGI/PersonalMAGI/app/.cxx/Release/163v3s3f/arm64-v8a'
+C/C++: /home/runner/work/PersonalMAGI/PersonalMAGI/app/.cxx/Release/163v3s3f/arm64-v8a/_deps/kleidiai-src/kai/ukernels/matmul/pack/kai_lhs_quant_pack_qai8dxp_f16_neon.c:153:45: warning: implicit conversion increases floating-point precision: 'float16_t' (aka '__fp16') to 'float' [-Wdouble-promotion]
+C/C++:   153 |             const float rmin0 = fminf(0.0F, min0);
+C/C++:       |                                 ~~~~~       ^~~~
+C/C++: /home/runner/work/PersonalMAGI/PersonalMAGI/app/.cxx/Release/163v3s3f/arm64-v8a/_deps/kleidiai-src/kai/ukernels/matmul/pack/kai_lhs_quant_pack_qai8dxp_f16_neon.c:154:45: warning: implicit conversion increases floating-point precision: 'float16_t' (aka '__fp16') to 'float' [-Wdouble-promotion]
+C/C++:   154 |             const float rmax0 = fmaxf(0.0F, max0);
+C/C++:       |                                 ~~~~~       ^~~~
+C/C++: /home/runner/work/PersonalMAGI/PersonalMAGI/app/.cxx/Release/163v3s3f/arm64-v8a/_deps/kleidiai-src/kai/ukernels/matmul/pack/kai_lhs_quant_pack_qai8dxp_f16_neon.c:156:45: warning: implicit conversion increases floating-point precision: 'float16_t' (aka '__fp16') to 'float' [-Wdouble-promotion]
+C/C++:   156 |             const float rmin1 = fminf(0.0F, min1);
+C/C++:       |                                 ~~~~~       ^~~~
+C/C++: /home/runner/work/PersonalMAGI/PersonalMAGI/app/.cxx/Release/163v3s3f/arm64-v8a/_deps/kleidiai-src/kai/ukernels/matmul/pack/kai_lhs_quant_pack_qai8dxp_f16_neon.c:157:45: warning: implicit conversion increases floating-point precision: 'float16_t' (aka '__fp16') to 'float' [-Wdouble-promotion]
+C/C++:   157 |             const float rmax1 = fmaxf(0.0F, max1);
+C/C++:       |                                 ~~~~~       ^~~~
+C/C++: /home/runner/work/PersonalMAGI/PersonalMAGI/app/.cxx/Release/163v3s3f/arm64-v8a/_deps/kleidiai-src/kai/ukernels/matmul/pack/kai_lhs_quant_pack_qai8dxp_f16_neon.c:159:45: warning: implicit conversion increases floating-point precision: 'float16_t' (aka '__fp16') to 'float' [-Wdouble-promotion]
+C/C++:   159 |             const float rmin2 = fminf(0.0F, min2);
+C/C++:       |                                 ~~~~~       ^~~~
+C/C++: /home/runner/work/PersonalMAGI/PersonalMAGI/app/.cxx/Release/163v3s3f/arm64-v8a/_deps/kleidiai-src/kai/ukernels/matmul/pack/kai_lhs_quant_pack_qai8dxp_f16_neon.c:160:45: warning: implicit conversion increases floating-point precision: 'float16_t' (aka '__fp16') to 'float' [-Wdouble-promotion]
+C/C++:   160 |             const float rmax2 = fmaxf(0.0F, max2);
+C/C++:       |                                 ~~~~~       ^~~~
+C/C++: /home/runner/work/PersonalMAGI/PersonalMAGI/app/.cxx/Release/163v3s3f/arm64-v8a/_deps/kleidiai-src/kai/ukernels/matmul/pack/kai_lhs_quant_pack_qai8dxp_f16_neon.c:162:45: warning: implicit conversion increases floating-point precision: 'float16_t' (aka '__fp16') to 'float' [-Wdouble-promotion]
+C/C++:   162 |             const float rmin3 = fminf(0.0F, min3);
+C/C++:       |                                 ~~~~~       ^~~~
+C/C++: /home/runner/work/PersonalMAGI/PersonalMAGI/app/.cxx/Release/163v3s3f/arm64-v8a/_deps/kleidiai-src/kai/ukernels/matmul/pack/kai_lhs_quant_pack_qai8dxp_f16_neon.c:163:45: warning: implicit conversion increases floating-point precision: 'float16_t' (aka '__fp16') to 'float' [-Wdouble-promotion]
+C/C++:   163 |             const float rmax3 = fmaxf(0.0F, max3);
+C/C++:       |                                 ~~~~~       ^~~~
+C/C++: /home/runner/work/PersonalMAGI/PersonalMAGI/app/.cxx/Release/163v3s3f/arm64-v8a/_deps/kleidiai-src/kai/ukernels/matmul/pack/kai_lhs_quant_pack_qai8dxp_f16_neon.c:393:41: warning: implicit conversion increases floating-point precision: 'float16_t' (aka '__fp16') to 'float' [-Wdouble-promotion]
+C/C++:   393 |         const float rmin0 = fminf(0.0F, min0);
+C/C++:       |                             ~~~~~       ^~~~
+C/C++: /home/runner/work/PersonalMAGI/PersonalMAGI/app/.cxx/Release/163v3s3f/arm64-v8a/_deps/kleidiai-src/kai/ukernels/matmul/pack/kai_lhs_quant_pack_qai8dxp_f16_neon.c:394:41: warning: implicit conversion increases floating-point precision: 'float16_t' (aka '__fp16') to 'float' [-Wdouble-promotion]
+C/C++:   394 |         const float rmax0 = fmaxf(0.0F, max0);
+C/C++:       |                             ~~~~~       ^~~~
+C/C++: 10 warnings generated.
+C/C++: /home/runner/work/PersonalMAGI/PersonalMAGI/app/.cxx/Release/163v3s3f/arm64-v8a/_deps/kleidiai-src/kai/ukernels/matmul/pack/kai_lhs_quant_pack_qsi8d32pscalef32_f16_neon.c:104:34: warning: implicit conversion increases floating-point precision: 'float16_t' (aka '__fp16') to 'float' [-Wdouble-promotion]
+C/C++:   104 |             const float scale0 = absmax == 0.0F ? 0.0F : qmax / absmax;
+C/C++:       |                                  ^~~~~~ ~~
+C/C++: /home/runner/work/PersonalMAGI/PersonalMAGI/app/.cxx/Release/163v3s3f/arm64-v8a/_deps/kleidiai-src/kai/ukernels/matmul/pack/kai_lhs_quant_pack_qsi8d32pscalef32_f16_neon.c:104:65: warning: implicit conversion increases floating-point precision: 'float16_t' (aka '__fp16') to 'float' [-Wdouble-promotion]
+C/C++:   104 |             const float scale0 = absmax == 0.0F ? 0.0F : qmax / absmax;
+C/C++:       |                                                               ~ ^~~~~~
+C/C++: /home/runner/work/PersonalMAGI/PersonalMAGI/app/.cxx/Release/163v3s3f/arm64-v8a/_deps/kleidiai-src/kai/ukernels/matmul/pack/kai_lhs_quant_pack_qsi8d32pscalef32_f16_neon.c:117:55: warning: implicit conversion increases floating-point precision: 'const float16_t' (aka 'const __fp16') to 'float' [-Wdouble-promotion]
+C/C++:   117 |                     int32_t v0_s32 = (int32_t)(roundf(src0_0 * scale0));
+C/C++:       |                                                       ^~~~~~ ~
+C/C++: 3 warnings generated.
+C/C++: /home/runner/work/PersonalMAGI/PersonalMAGI/app/src/main/cpp/llama.cpp/ggml/src/ggml-opencl/ggml-opencl.cpp:9896:9: warning: TODO: implement BF16, Q4_0, Q4_1, Q5_0, Q5_1, Q8_0, IQ4_NL support (https://github.com/ggml-org/llama.cpp/pull/14661) [-W#pragma-messages]
+C/C++:  9896 | #pragma message("TODO: implement BF16, Q4_0, Q4_1, Q5_0, Q5_1, Q8_0, IQ4_NL support (https://github.com/ggml-org/llama.cpp/pull/14661)")
+C/C++:       |         ^
+C/C++: 1 warning generated.
+
+> Task :app:mergeReleaseJniLibFolders
+> Task :app:checkReleaseDuplicateClasses
+> Task :app:buildKotlinToolingMetadata
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:checkReleaseAarMetadata UP-TO-DATE
+> Task :app:processReleaseNavigationResources UP-TO-DATE
+> Task :app:compileReleaseNavigationResources UP-TO-DATE
+> Task :app:generateReleaseResValues UP-TO-DATE
+> Task :app:mergeReleaseNativeLibs
+> Task :app:mapReleaseSourceSetPaths UP-TO-DATE
+> Task :app:generateReleaseResources UP-TO-DATE
+> Task :app:mergeReleaseResources UP-TO-DATE
+> Task :app:packageReleaseResources UP-TO-DATE
+> Task :app:parseReleaseLocalResources UP-TO-DATE
+> Task :app:createReleaseCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksRelease UP-TO-DATE
+> Task :app:processReleaseMainManifest UP-TO-DATE
+> Task :app:processReleaseManifest UP-TO-DATE
+> Task :app:processReleaseManifestForPackage UP-TO-DATE
+> Task :app:stripReleaseDebugSymbols
+> Task :app:processReleaseResources UP-TO-DATE
+> Task :app:compileReleaseKotlin UP-TO-DATE
+> Task :app:javaPreCompileRelease
+> Task :app:desugarReleaseFileDependencies
+> Task :app:compileReleaseJavaWithJavac NO-SOURCE
+> Task :app:extractReleaseNativeSymbolTables
+> Task :app:dexBuilderRelease
+> Task :app:mergeReleaseStartupProfile
+> Task :app:mergeReleaseArtProfile
+> Task :app:mergeReleaseGlobalSynthetics
+> Task :app:mergeReleaseShaders
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets
+> Task :app:compressReleaseAssets
+> Task :app:extractReleaseVersionControlInfo
+> Task :app:extractProguardFiles
+> Task :app:generateReleaseLintVitalReportModel
+> Task :app:processReleaseJavaRes
+> Task :app:mergeReleaseNativeDebugMetadata
+> Task :app:mergeReleaseJavaResource
+> Task :app:optimizeReleaseResources
+> Task :app:collectReleaseDependencies
+> Task :app:sdkReleaseDependencyData
+> Task :app:validateSigningRelease
+> Task :app:writeReleaseAppMetadata
+> Task :app:writeReleaseSigningConfigVersions
+> Task :app:mergeExtDexRelease
+> Task :app:mergeDexRelease
+> Task :app:compileReleaseArtProfile
+> Task :app:lintVitalAnalyzeRelease
+> Task :app:lintVitalReportRelease
+> Task :app:lintVitalRelease
+> Task :app:packageRelease
+> Task :app:createReleaseApkListingFileRedirect
+> Task :app:assembleRelease
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_8-1793978550555.json
+
+BUILD SUCCESSFUL in 6m 7s
+53 actionable tasks: 37 executed, 16 up-to-date

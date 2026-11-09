@@ -80,16 +80,30 @@ data class DeliberationState(
 
 object VerdictParser {
     private val LINE = Regex("判定\\s*[:：]\\s*([^\\n]*)")
+    private val WORDS = listOf(
+        "不承認" to Verdict.REJECT, "否決" to Verdict.REJECT, "反対" to Verdict.REJECT, "却下" to Verdict.REJECT,
+        "承認" to Verdict.APPROVE, "可決" to Verdict.APPROVE, "賛成" to Verdict.APPROVE,
+        "保留" to Verdict.ABSTAIN, "棄権" to Verdict.ABSTAIN, "判断材料不足" to Verdict.ABSTAIN,
+    )
+    private val NEGATED = Regex("^(しない|できない|ではない|とは言えない|しかねる|せず)")
 
+    /**
+     * The verdict is the first verdict word on the 判定 line: "承認（否決する理由はない）" is an
+     * approval. The answer template copied as it is ("承認・否決・保留のどれか") decides nothing.
+     */
     fun parse(text: String): Verdict {
-        val head = LINE.find(text)?.groupValues?.get(1) ?: text.take(40)
-        val rej = listOf("否決", "反対", "却下", "不承認").any { head.contains(it) }
-        val app = listOf("承認", "可決", "賛成").any { head.contains(it) }
-        return when {
-            rej -> Verdict.REJECT
-            app -> Verdict.APPROVE
-            else -> Verdict.ABSTAIN
+        val head = (LINE.find(text)?.groupValues?.get(1) ?: text.take(40)).replace("*", "")
+        if (Regex("または|どれか|・|/|／").containsMatchIn(head) && WORDS.count { (w, _) -> head.contains(w) } >= 2) return Verdict.ABSTAIN
+        var best: Pair<Int, Verdict>? = null
+        for ((w, v) in WORDS) {
+            var i = head.indexOf(w)
+            // "承認" inside "不承認" is not an approval
+            while (i >= 0 && w == "承認" && i > 0 && head[i - 1] == '不') i = head.indexOf(w, i + 1)
+            if (i < 0) continue
+            val verdict = if (v == Verdict.APPROVE && NEGATED.containsMatchIn(head.substring(i + w.length))) Verdict.REJECT else v
+            if (best == null || i < best.first) best = i to verdict
         }
+        return best?.second ?: Verdict.ABSTAIN
     }
 
     fun resolve(verdicts: Collection<Verdict>): Resolution {
@@ -652,7 +666,13 @@ class Deliberation(
 
             // 4. Result: by the chosen integrator (locally: the sage model still loaded, normally MELCHIOR)
             val ordered = DeliberationState.JUDGES.mapNotNull { r -> opinions[r]?.let { r to it } }
-            val header = (if (hypothesis != null) "仮説: $hypothesis\n" else "") + "決議: ${res.label}（${voteSummary(verdicts)}）\n"
+            // what the resolution means for the hypothesis, so 否決 is not read as "the answer is no"
+            val meaning = if (hypothesis == null) "" else when (res) {
+                Resolution.PASSED -> " → 仮説を採用"
+                Resolution.REJECTED -> " → 仮説は不採用"
+                Resolution.PENDING -> " → 結論は保留"
+            }
+            val header = (if (hypothesis != null) "仮説: $hypothesis\n" else "") + "決議: ${res.label}（${voteSummary(verdicts)}）$meaning\n"
             // the per-sage lines are built by the app from the parsed replies: names and
             // verdicts are always right, whatever the integrating model writes
             val roster = DeliberationState.JUDGES.reversed().mapNotNull { r ->

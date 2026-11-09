@@ -141,7 +141,7 @@ fun HistoryScreen(vm: MagiViewModel) {
                         modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 6,
                     )
                     Text(
-                        if (prev.isNotBlank()) "「別の仮説で」は、提訴役が前回と違う立場の仮説を作り直します。" else "前回は仮説なしで審議しました。",
+                        if (prev.isNotBlank()) "「別の仮説で審議」は、提訴役が前回と違う立場の仮説を作り直します。" else "前回は仮説なしで審議しました。",
                         style = MaterialTheme.typography.labelSmall, color = MagiColors.TextDim,
                     )
                 }
@@ -155,7 +155,7 @@ fun HistoryScreen(vm: MagiViewModel) {
                 Row {
                     TextButton(onClick = { redoOf = null }) { Text("やめる") }
                     TextButton(onClick = { redoOf = null; vm.redeliberate(h, differ = true) }) {
-                        Text(if (prev.isNotBlank()) "別の仮説で" else "仮説から作る")
+                        Text(if (prev.isNotBlank()) "別の仮説で審議" else "仮説を作って審議")
                     }
                 }
             },

@@ -431,6 +431,19 @@ class Deliberation(
                 } else if (lookups.isNotEmpty()) log.append("（調べた結果が得られませんでした）\n")
                 if (!Prompts.isRealHypothesis(hypothesis)) hypothesis = plan.hypothesis
                     ?: Prompts.clean(first).lines().firstOrNull { it.isNotBlank() && !it.startsWith("調査") }?.trim()
+                // "cannot be judged from the material" is no hypothesis: asked once more to take a side
+                if (fixedHyp == null && Prompts.isNonCommittal(hypothesis)) {
+                    checkCancel()
+                    stage("PROPOSER: 立場を決めて仮説を作り直し中")
+                    log.append("（判断を保留した仮説を作り直し）\n")
+                    val material = if (found.isNotEmpty()) WebResearch.asText(found, 2200) else "（調査資料なし。一般的な知識と論理で考える）"
+                    val again = pAsk(Prompts.PROPOSE_SYSTEM,
+                        Prompts.proposeWithResearch(question, material, finance, visual) + avoidNote + Prompts.commitNote(hypothesis!!),
+                        if (finance) 160 else 100, Prompts.PROPOSE_PREFILL) { }
+                    checkCancel()
+                    Prompts.parsePlan(Prompts.clean(again.first)).hypothesis?.let { hypothesis = it }
+                    if (found.isNotEmpty()) stats = again.second
+                }
                 if (stats.isBlank()) stats = if (fixedHyp != null) "仮説は指定" else if (pb is Brain.Local) LlamaBridge.lastStats() else pb.label
                 // plans ("〜を調べる"), platitudes and stale-dated claims are not answers: the sages then answer directly
                 val h = fixedHyp ?: hypothesis?.takeIf { Prompts.isRealHypothesis(it) && !Prompts.isStale(it) }

@@ -122,6 +122,9 @@ object Prompts {
 仮説は、審議者が「承認」か「否決」で評価できる、一文の具体的な主張にする。
 審議事項が「〜すべきか」「〜は本当か」のように可否を問う形なら、それをそのまま肯定の主張にする。
 仮説は「〜を調べる」「〜が重要」「〜を見る必要がある」のような行動や一般論にしない。審議事項への答えそのもの（「〜である」「〜になる見込みが高い」）にする。
+仮説は必ず一つの立場を取る。「判断できない」「資料だけでは分からない」「不明」「〜次第」は仮説ではない。
+資料が足りなくても、一般的な知識と論理から最もありそうな答えを選んで言い切る（どれだけ確かかは審議者が評価する）。
+「〜と仮定して」のような仮定の審議事項は、その仮定が成り立つ前提で答える。
 日付・数値・出来事は、資料に書かれたものだけを使う。
 見出し・太字・箇条書き記号は使わない。"""
 
@@ -150,6 +153,7 @@ object Prompts {
         if (!prior.isNullOrBlank()) append("【前回の審議】（今回の審議事項はこの続き。前回の結論を踏まえて考える）\n").append(prior.trim()).append("\n\n")
         append("【審議事項】\n").append(question.trim()).append("\n\n")
         append("調査資料のうち審議事項に関係する部分だけを使い、審議事項への答えとなる仮説を一文で書くこと。関係のない資料は無視する。")
+        append("資料に答えが直接書かれていなくても、資料と一般的な知識から最もありそうな答えを選んで言い切ること。「判断できない」「資料だけでは」とは書かない。")
         if (finance) append("\n仮説で銘柄を挙げたときは、その次の行に「銘柄: 名前、名前、名前」と書く。")
     }
 
@@ -227,9 +231,22 @@ object Prompts {
         "\n\n注意: 今日は${WebResearch.today()}。前の仮説「$h」は過去の年を未来の予定として書いていて誤り。" +
             "今日の日付と調査資料の日付を基準に、今の時点での答えを一文で書き直すこと。"
 
-    /** A hypothesis must be an answer, not a plan ("〜を調べる") or a platitude. */
+    private val NON_COMMITTAL = Regex(
+        "判断(でき|は|が)(ない|難しい|困難)|判断できず|(分から|わから)ない|不明(である|だ|です)?。?$|(言え|断定でき|予測でき|結論づけられ|見通せ)ない|" +
+            "(資料|情報|材料)(だけ|のみ)では|判断材料(が|は)?(なし|ない|不足)|次第(である|だ|です)?。?$|一概に"
+    )
+
+    /** "Cannot be judged from the material" takes no side, so the sages would have nothing to judge. */
+    fun isNonCommittal(h: String?): Boolean = !h.isNullOrBlank() && NON_COMMITTAL.containsMatchIn(h)
+
+    fun commitNote(h: String): String =
+        "\n\n注意: 前の仮説「$h」は立場を取っておらず、仮説になっていない。資料が足りなくても、一般的な知識と論理から" +
+            "最もありそうな答えを一つ選び、「〜である」「〜できる」「〜できない」のように言い切る一文で書き直すこと。"
+
+    /** A hypothesis must be an answer, not a plan ("〜を調べる"), a platitude or a refusal to take a side. */
     fun isRealHypothesis(h: String?): Boolean {
         if (h.isNullOrBlank() || h.length < 6) return false
+        if (isNonCommittal(h)) return false
         val t = h.trim().trimEnd('。', '.')
         return !Regex("(調べる|調査する|確認する|検討する|見る必要がある|必要がある|が重要(である|だ)?|を見極める|注視する|判断材料なし)$").containsMatchIn(t) &&
             !t.contains("を調べ")

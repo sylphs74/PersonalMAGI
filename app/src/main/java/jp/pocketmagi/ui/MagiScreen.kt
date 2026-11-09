@@ -45,6 +45,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -208,11 +209,17 @@ private fun Header(st: DeliberationState, elapsedMs: Long) {
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Text("POCKET / LOCAL", style = MaterialTheme.typography.labelSmall, color = MagiColors.AmberDim)
-            Text(
-                st.stage.ifBlank { "審議事項を入力してください" },
-                style = MaterialTheme.typography.labelSmall, color = MagiColors.TextDim,
-                maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
+            // while deliberating, a long status runs sideways like the model names, resting after each lap
+            val running = st.startedAt > 0 && st.finishedAt == 0L
+            key(st.stage) {
+                Text(
+                    st.stage.ifBlank { "審議事項を入力してください" },
+                    style = MaterialTheme.typography.labelSmall, color = MagiColors.TextDim,
+                    maxLines = 1, softWrap = false,
+                    overflow = if (running) TextOverflow.Clip else TextOverflow.Ellipsis,
+                    modifier = if (running) Modifier.basicMarquee(iterations = Int.MAX_VALUE, repeatDelayMillis = 1800, initialDelayMillis = 1000) else Modifier,
+                )
+            }
         }
         if (st.startedAt > 0) {
             Text(
@@ -380,6 +387,8 @@ private fun SagePanel(s: SageState, shape: Shape, modifier: Modifier, onTap: (Sa
                 s.status == SageStatus.ERROR -> "障害"
                 s.status == SageStatus.MISSING -> "未導入"
                 stopped -> "中断"
+                // second turn of a sage whose first judgement was in the minority
+                s.firstVerdict != null && active -> "反論中"
                 else -> s.status.label
             }
             Text(

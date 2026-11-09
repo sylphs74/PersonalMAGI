@@ -564,15 +564,16 @@ class Deliberation(
                     val own = opinions[role] ?: return
                     try {
                         if (b is Brain.Local && LlamaBridge.loadedPath != b.files.model.absolutePath) {
-                            setSage(role) { it.copy(status = SageStatus.LOADING) }
-                            stage("${role.code}: 反論ラウンドのため起動中")
+                            setSage(role) { it.copy(status = SageStatus.LOADING, firstVerdict = it.verdict) }
+                            stage("反論ラウンド: ${role.code} が反論の準備中（${b.spec.name} を起動）")
                             loadLocal(b, role, settings, ctx)
                             checkCancel()
                         }
                         val first = _state.value.sages[role]?.verdict
                         setSage(role) { it.copy(status = SageStatus.THINKING, firstVerdict = first,
                             text = "反論ラウンド: 他の賢者の意見を読んで考え直しています…\n\n（最初の判断）\n$own") }
-                        if (b is Brain.Local) stage("${role.code}: 反論ラウンド（他の賢者の意見を検討中）")
+                        if (b is Brain.Local) stage("反論ラウンド: ${role.code} が反論中（" +
+                            firstRound.filter { it.first != role }.joinToString("・") { it.first.code } + " の意見を検討）")
                         // a short excerpt of the material is enough here: the first round already used it
                         val (raw, stats) = ask(b, Prompts.judgeSystem(role, settings.speechStyle, hypothesis != null),
                             Prompts.rebuttalUser(question, visual, hypothesis, researchFor(b, 1400)?.take(900), own,
@@ -593,6 +594,7 @@ class Deliberation(
                         setSage(role) { it.copy(status = SageStatus.DONE, stats = it.stats + "\n反論ラウンド失敗: ${e.message?.take(80)}") }
                     }
                 }
+                stage("反論ラウンド: " + dissenters.joinToString("・") { it.code } + " が反論（少数意見の再検討）")
                 kotlinx.coroutines.coroutineScope {
                     val remote = dissenters.filter { used[it] is Brain.Remote }.map { r -> async { reconsider(r) } }
                     // the model still loaded (normally MELCHIOR) goes first, so one load is saved

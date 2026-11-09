@@ -1,0 +1,26 @@
+total 29924
+drwxr-xr-x  2 runner runner     4096 Nov  9 17:35 .
+drwxr-xr-x 11 runner runner     4096 Nov  9 17:35 ..
+-rw-r--r--  1 runner runner 30630119 Nov  9 17:35 PersonalMAGI-0.1.11.apk
+    10096  1981-01-01 01:01   lib/arm64-v8a/libandroidx.graphics.path.so
+  1137904  1981-01-01 01:01   lib/arm64-v8a/libggml-base.so
+  1614784  1981-01-01 01:01   lib/arm64-v8a/libggml-cpu-android_armv8.0_1.so
+  1640480  1981-01-01 01:01   lib/arm64-v8a/libggml-cpu-android_armv8.2_1.so
+  1639584  1981-01-01 01:01   lib/arm64-v8a/libggml-cpu-android_armv8.2_2.so
+  1652160  1981-01-01 01:01   lib/arm64-v8a/libggml-cpu-android_armv8.6_1.so
+  1668560  1981-01-01 01:01   lib/arm64-v8a/libggml-cpu-android_armv9.0_1.so
+  1668560  1981-01-01 01:01   lib/arm64-v8a/libggml-cpu-android_armv9.2_1.so
+  1668560  1981-01-01 01:01   lib/arm64-v8a/libggml-cpu-android_armv9.2_2.so
+  3981096  1981-01-01 01:01   lib/arm64-v8a/libggml-opencl.so
+   121672  1981-01-01 01:01   lib/arm64-v8a/libggml.so
+  4738720  1981-01-01 01:01   lib/arm64-v8a/libllama-common.so
+  4461592  1981-01-01 01:01   lib/arm64-v8a/libllama.so
+  1626056  1981-01-01 01:01   lib/arm64-v8a/libmtmd.so
+   975976  1981-01-01 01:01   lib/arm64-v8a/libomp.so
+    89736  1981-01-01 01:01   lib/arm64-v8a/libpocketmagi.so
+== app/build/intermediates/cxx/Release/163v3s3f/obj/arm64-v8a/libggml-opencl.so
+  0x0000000000000001 (NEEDED)       Shared library: [libggml-base.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libOpenCL.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]

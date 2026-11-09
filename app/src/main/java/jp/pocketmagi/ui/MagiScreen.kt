@@ -73,6 +73,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.coerceIn
 import androidx.compose.ui.unit.sp
 import jp.pocketmagi.MagiViewModel
 import jp.pocketmagi.engine.DeliberationState
@@ -230,53 +231,67 @@ private fun Header(st: DeliberationState, elapsedMs: Long) {
 @Composable
 private fun SageBoard(st: DeliberationState, onTap: (SageState) -> Unit) {
     val line = MagiColors.AmberDim
-    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth().height(BOARD_H)) {
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
         val w = maxWidth
-        val topW = w * 0.5f
-        val sideW = w * 0.46f
         val cut = 22.dp
-        // connecting lines behind the panels
-        Box(Modifier.matchParentSize().drawBehind {
+        val cornerW = w * 0.23f
+        // The board is laid out so that BALTHASAR's lower cut corner, the connecting line and the
+        // cut corner of CASPER (and of MELCHIOR on the right) lie on one 45° line: the gap between
+        // the rows equals the horizontal distance the line has to cover.
+        var sideW = w * 0.46f
+        val gap = (sideW - w * 0.25f - cut * 2).coerceIn(36.dp, 64.dp)
+        var topX = sideW - gap - cut * 2
+        if (topX < cornerW + 4.dp) { topX = cornerW + 4.dp; sideW = topX + gap + cut * 2 }
+        val sideY = PANEL_H + gap
+        Box(Modifier.fillMaxWidth().height(sideY + PANEL_H).drawBehind {
+            // connecting lines behind the panels, centred on the same outlines as the panel borders
             val W = size.width
             val c = cut.toPx()
-            val topBottom = PANEL_H.toPx()
-            val sideTop = SIDE_Y.toPx()
-            val stroke = 2.dp.toPx()
-            val bl = androidx.compose.ui.geometry.Offset(W * 0.25f + c, topBottom)
-            val br = androidx.compose.ui.geometry.Offset(W * 0.75f - c, topBottom)
-            val cs = androidx.compose.ui.geometry.Offset(W * 0.46f - c / 2, sideTop + c / 2)
-            val ms = androidx.compose.ui.geometry.Offset(W * 0.54f + c / 2, sideTop + c / 2)
-            val midY = sideTop + PANEL_H.toPx() * 0.6f
-            drawLine(line, bl, androidx.compose.ui.geometry.Offset(bl.x, bl.y + c / 2), stroke)
-            drawLine(line, androidx.compose.ui.geometry.Offset(bl.x, bl.y + c / 2), cs, stroke)
-            drawLine(line, br, androidx.compose.ui.geometry.Offset(br.x, br.y + c / 2), stroke)
-            drawLine(line, androidx.compose.ui.geometry.Offset(br.x, br.y + c / 2), ms, stroke)
-            drawLine(line, androidx.compose.ui.geometry.Offset(W * 0.46f, midY), androidx.compose.ui.geometry.Offset(W * 0.54f, midY), stroke)
+            val top = PANEL_H.toPx()
+            val side = sideY.toPx()
+            val tx = topX.toPx()
+            val sw = sideW.toPx()
+            val stroke = BORDER_W.toPx()
+            fun o(x: Float, y: Float) = androidx.compose.ui.geometry.Offset(x, y)
+            drawLine(line, o(tx + c, top), o(sw - c, side), stroke, StrokeCap.Square)
+            drawLine(line, o(W - tx - c, top), o(W - sw + c, side), stroke, StrokeCap.Square)
+            val midY = side + PANEL_H.toPx() * 0.6f
+            drawLine(line, o(sw, midY), o(W - sw, midY), stroke)
         })
-        CornerBox("提訴", proposerLabel(st), proposerColor(st), Modifier.width(w * 0.23f).height(58.dp)) { onTap(st.proposer) }
+        CornerBox("提訴", proposerLabel(st), proposerColor(st), Modifier.width(cornerW).height(58.dp)) { onTap(st.proposer) }
         CornerBox("決議", st.resolution?.label ?: "——", resolutionColor(st.resolution),
-            Modifier.offset(x = w * 0.77f).width(w * 0.23f).height(58.dp), big = true) {}
+            Modifier.offset(x = w - cornerW).width(cornerW).height(58.dp), big = true) {}
         SagePanel(st.sages.getValue(SageRole.BALTHASAR), CutCornerShape(bottomStart = cut, bottomEnd = cut),
-            Modifier.offset(x = w * 0.25f).width(topW).height(PANEL_H), onTap)
+            Modifier.offset(x = topX).width(w - topX * 2).height(PANEL_H), onTap)
         // the mediator in the middle
         Column(
-            Modifier.offset(y = PANEL_H).width(w).height(SIDE_Y - PANEL_H),
+            Modifier.offset(y = PANEL_H).width(w).height(gap),
             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
         ) {
-            Text("MAGI", fontSize = 26.sp, fontWeight = FontWeight.Black, letterSpacing = 4.sp,
+            Text("MAGI", fontSize = 26.sp, lineHeight = 26.sp, fontWeight = FontWeight.Black, letterSpacing = 4.sp,
                 color = if (st.integrating) MagiColors.Amber else MagiColors.AmberDim)
             if (st.integrating) Text("審議結果をまとめ中", style = MaterialTheme.typography.labelSmall, color = MagiColors.Amber)
         }
         SagePanel(st.sages.getValue(SageRole.CASPER), CutCornerShape(topEnd = cut),
-            Modifier.offset(y = SIDE_Y).width(sideW).height(PANEL_H), onTap)
+            Modifier.offset(y = sideY).width(sideW).height(PANEL_H), onTap)
         SagePanel(st.sages.getValue(SageRole.MELCHIOR), CutCornerShape(topStart = cut),
-            Modifier.offset(x = w - sideW, y = SIDE_Y).width(sideW).height(PANEL_H), onTap)
+            Modifier.offset(x = w - sideW, y = sideY).width(sideW).height(PANEL_H), onTap)
     }
 }
 
 private val PANEL_H = 108.dp
-private val SIDE_Y = 146.dp
-private val BOARD_H = 254.dp
+private val BORDER_W = 2.dp
+
+/**
+ * A border drawn centred on the shape's outline (Modifier.border draws it inside), so that it lines
+ * up exactly with the connecting lines and with the comet of [orbitBorder].
+ */
+private fun Modifier.outlineBorder(width: androidx.compose.ui.unit.Dp, color: Color, shape: Shape): Modifier =
+    drawWithCache {
+        val path = Path().apply { addOutline(shape.createOutline(size, layoutDirection, this@drawWithCache)) }
+        val stroke = Stroke(width = width.toPx(), join = androidx.compose.ui.graphics.StrokeJoin.Miter)
+        onDrawWithContent { drawContent(); drawPath(path, color, style = stroke) }
+    }
 
 private fun proposerLabel(st: DeliberationState): String = when (st.proposer.status) {
     SageStatus.SKIPPED -> "—"
@@ -340,7 +355,7 @@ private fun SagePanel(s: SageState, shape: Shape, modifier: Modifier, onTap: (Sa
     val orbit = pulse.animateFloat(0f, 1f, infiniteRepeatable(tween(1600, easing = LinearEasing)), label = "orbit")
     Box(
         modifier
-            .border(BorderStroke(2.dp, if (thinking) MagiColors.AmberDim else color), shape)
+            .outlineBorder(BORDER_W, if (thinking) MagiColors.AmberDim else color, shape)
             .orbitBorder(thinking, shape, MagiColors.Amber, orbit)
             .background(if (decided) color.copy(alpha = 0.18f) else MagiColors.Panel, shape)
             .clickable { onTap(s) }
@@ -543,7 +558,7 @@ private fun Modifier.orbitBorder(enabled: Boolean, shape: Shape, color: Color, p
         val pm = PathMeasure().apply { setPath(outline, true) }
         val len = pm.length
         val seg = Path()
-        val stroke = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+        val stroke = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Butt, join = androidx.compose.ui.graphics.StrokeJoin.Miter)
         val pieces = 10
         onDrawWithContent {
             drawContent()

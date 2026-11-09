@@ -143,8 +143,8 @@ fun SettingsScreen(vm: MagiViewModel) {
                 }
                 "music" -> MusicSection(vm, s)
                 "deliberation" -> {
-                    Section("反論ラウンド")
-                    SwitchRow("反論ラウンド", "最初の判定が割れたとき、少数派の賢者が他の意見を読んで1回だけ考え直します（全員一致なら省略）。端末内のモデルでは1人あたり数分かかります",
+                    Section("再審議")
+                    SwitchRow("少数派の再審議", "最初の判定が割れたとき、少数派の賢者が他の意見を読んで1回だけ考え直します（全員一致なら省略）。端末内のモデルでは1人あたり数分かかります",
                         s.rebuttal) { vm.updateSettings(s.copy(rebuttal = it)) }
                     Section("Web調査")
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 8.dp)) {

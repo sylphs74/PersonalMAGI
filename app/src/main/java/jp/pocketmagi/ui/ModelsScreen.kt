@@ -383,7 +383,7 @@ private fun PresetRow(vm: MagiViewModel) {
         title = { Text("今の構成を保存") },
         text = {
             Column {
-                Text("各役割のAI・口調・Web調査・反論ラウンドを保存します", style = MaterialTheme.typography.labelSmall, color = MagiColors.TextDim)
+                Text("各役割のAI・口調・Web調査・再審議を保存します", style = MaterialTheme.typography.labelSmall, color = MagiColors.TextDim)
                 androidx.compose.material3.OutlinedTextField(value = name, onValueChange = { name = it.take(20) }, singleLine = true, label = { Text("名前") })
             }
         },

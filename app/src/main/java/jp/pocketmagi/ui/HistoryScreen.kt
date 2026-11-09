@@ -129,7 +129,7 @@ fun HistoryScreen(vm: MagiViewModel) {
             dismissButton = {
                 Row(Modifier.horizontalScroll(rememberScrollState())) {
                     TextButton(onClick = { vm.deleteHistory(h.time); open = null }) { Text("削除", color = MagiColors.Reject) }
-                    TextButton(onClick = { open = null; vm.redeliberate(h) }) { Text("再審議") }
+                    TextButton(onClick = { open = null; vm.redeliberate(h) }) { Text("もう一度審議") }
                     TextButton(onClick = { open = null; vm.followUpFrom(h) }) { Text("追加審議") }
                     val ctx = androidx.compose.ui.platform.LocalContext.current
                     TextButton(onClick = {

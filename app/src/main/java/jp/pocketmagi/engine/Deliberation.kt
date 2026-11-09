@@ -556,7 +556,7 @@ class Deliberation(
                 majority != null -> firstVerdicts.filterValues { it != majority }.keys.toList()
                 else -> firstVerdicts.keys.toList()
             }
-            if (settings.rebuttal && firstRound.size >= 2 && dissenters.isEmpty()) stage("反論ラウンド: 全員の判定が一致したため省略")
+            if (settings.rebuttal && firstRound.size >= 2 && dissenters.isEmpty()) stage("再審議: 全員の判定が一致したため省略")
             if (settings.rebuttal && firstRound.size >= 2 && dissenters.isNotEmpty()) {
                 suspend fun reconsider(role: SageRole) {
                     checkCancel()
@@ -565,15 +565,15 @@ class Deliberation(
                     try {
                         if (b is Brain.Local && LlamaBridge.loadedPath != b.files.model.absolutePath) {
                             setSage(role) { it.copy(status = SageStatus.LOADING, firstVerdict = it.verdict) }
-                            stage("反論ラウンド: ${role.code} が反論の準備中（${b.spec.name} を起動）")
+                            stage("再審議: ${role.code} が準備中（${b.spec.name} を起動）")
                             loadLocal(b, role, settings, ctx)
                             checkCancel()
                         }
                         val first = _state.value.sages[role]?.verdict
                         setSage(role) { it.copy(status = SageStatus.THINKING, firstVerdict = first,
-                            text = "反論ラウンド: 他の賢者の意見を読んで考え直しています…\n\n（最初の判断）\n$own") }
-                        if (b is Brain.Local) stage("反論ラウンド: ${role.code} が反論中（" +
-                            firstRound.filter { it.first != role }.joinToString("・") { it.first.code } + " の意見を検討）")
+                            text = "再審議: 他の賢者の意見を読んで考え直しています…\n\n（最初の判断）\n$own") }
+                        if (b is Brain.Local) stage("再審議: ${role.code} が見直し中（" +
+                            firstRound.filter { it.first != role }.joinToString("・") { it.first.code } + " の意見を読んで）")
                         // a short excerpt of the material is enough here: the first round already used it
                         val (raw, stats) = ask(b, Prompts.judgeSystem(role, settings.speechStyle, hypothesis != null),
                             Prompts.rebuttalUser(question, visual, hypothesis, researchFor(b, 1400)?.take(900), own,
@@ -584,17 +584,17 @@ class Deliberation(
                         checkCancel()
                         val v = VerdictParser.parse(out)
                         setSage(role) { it.copy(status = SageStatus.DONE, verdict = v, text = out,
-                            stats = it.stats + "\n反論ラウンド: " + (first?.label ?: "—") + " → " + v.label + "\n" + stats) }
+                            stats = it.stats + "\n再審議: " + (first?.label ?: "—") + " → " + v.label + "\n" + stats) }
                         opinions[role] = out
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {
                         if (_state.value.phase == Phase.CANCELLED) throw CancellationException("cancelled")
                         // the first-round opinion stands
-                        setSage(role) { it.copy(status = SageStatus.DONE, stats = it.stats + "\n反論ラウンド失敗: ${e.message?.take(80)}") }
+                        setSage(role) { it.copy(status = SageStatus.DONE, stats = it.stats + "\n再審議失敗: ${e.message?.take(80)}") }
                     }
                 }
-                stage("反論ラウンド: " + dissenters.joinToString("・") { it.code } + " が反論（少数意見の再検討）")
+                stage("再審議: " + dissenters.joinToString("・") { it.code } + "（少数意見）が判断を見直します")
                 kotlinx.coroutines.coroutineScope {
                     val remote = dissenters.filter { used[it] is Brain.Remote }.map { r -> async { reconsider(r) } }
                     // the model still loaded (normally MELCHIOR) goes first, so one load is saved

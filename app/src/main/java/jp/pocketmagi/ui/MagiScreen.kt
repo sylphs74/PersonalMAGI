@@ -388,7 +388,7 @@ private fun SagePanel(s: SageState, shape: Shape, modifier: Modifier, onTap: (Sa
                 s.status == SageStatus.MISSING -> "未導入"
                 stopped -> "中断"
                 // second turn of a sage whose first judgement was in the minority
-                s.firstVerdict != null && active -> "反論中"
+                s.firstVerdict != null && active -> "再審議中"
                 else -> s.status.label
             }
             Text(

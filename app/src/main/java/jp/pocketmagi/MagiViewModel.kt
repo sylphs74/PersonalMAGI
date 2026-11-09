@@ -123,7 +123,7 @@ class MagiViewModel(app: Application) : AndroidViewModel(app) {
                     jp.pocketmagi.engine.DeliberationState(question = q, startedAt = t, finishedAt = t),
                     "中断（アプリが終了）", s.historyMaxCount, s.historyMaxDays,
                 )
-                message.value = "前回の審議はアプリが終了したため中断されました。記録から再審議できます"
+                message.value = "前回の審議はアプリが終了したため中断されました。記録からもう一度審議できます"
             }
             history.value = historyStore.load()
         }
@@ -366,7 +366,7 @@ class MagiViewModel(app: Application) : AndroidViewModel(app) {
     /** Runs a recorded question again with the current models and settings. */
     fun redeliberate(h: HistoryEntry) {
         if (deliberation.state.value.phase == Phase.RUNNING) {
-            message.value = "審議中です。終わってから再審議してください"
+            message.value = "審議中です。終わってからもう一度審議してください"
             return
         }
         requestTab.value = 0
@@ -399,7 +399,7 @@ class MagiViewModel(app: Application) : AndroidViewModel(app) {
             // a finished result can be continued by the next question
             if (st.phase == Phase.DONE && st.integrated.isNotBlank()) followUp.value = jp.pocketmagi.engine.FollowUp.of(st, prior)
             if (st.phase == Phase.DONE && runSettings.historyEnabled) {
-                val label = when { redo -> "再審議"; prior != null -> "追加審議"; else -> "" }
+                val label = when { redo -> "やり直し"; prior != null -> "追加審議"; else -> "" }
                 withContext(Dispatchers.IO) {
                     hist.add(st, label, runSettings.historyMaxCount, runSettings.historyMaxDays)
                 }
@@ -574,8 +574,8 @@ class MagiViewModel(app: Application) : AndroidViewModel(app) {
         updateSettings(next)
         message.value = when (kind) {
             "fast" -> "速さ重視: すべて端末内の標準モデルにしました"
-            "accurate" -> if (jp.pocketmagi.engine.CloudProvider.entries.none { hasKey(it) }) "精度重視: クラウドAIのキーがないため端末内のまま、反論ラウンドを有効にしました"
-                else "精度重視: 役割ごとのおすすめクラウドAIと反論ラウンドにしました"
+            "accurate" -> if (jp.pocketmagi.engine.CloudProvider.entries.none { hasKey(it) }) "精度重視: クラウドAIのキーがないため端末内のまま、再審議を有効にしました"
+                else "精度重視: 役割ごとのおすすめクラウドAIと再審議にしました"
             else -> "オフライン: 端末内のモデルだけで、Web調査なしにしました"
         }
     }

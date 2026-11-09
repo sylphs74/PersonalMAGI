@@ -363,18 +363,26 @@ class MagiViewModel(app: Application) : AndroidViewModel(app) {
         refreshInstall()
     }
 
-    /** Runs a recorded question again with the current models and settings. */
-    fun redeliberate(h: HistoryEntry) {
+    /**
+     * Runs a recorded question again with the current models and settings: with [hypothesis] written
+     * by the user, or with a new hypothesis that differs from the recorded one when [differ] is set.
+     */
+    fun redeliberate(h: HistoryEntry, hypothesis: String? = null, differ: Boolean = false) {
         if (deliberation.state.value.phase == Phase.RUNNING) {
             message.value = "審議中です。終わってからもう一度審議してください"
             return
         }
         requestTab.value = 0
-        start(h.question, redo = true)
+        val r = when {
+            !hypothesis.isNullOrBlank() -> jp.pocketmagi.engine.Deliberation.Redo(hypothesis = hypothesis.trim())
+            differ -> jp.pocketmagi.engine.Deliberation.Redo(avoid = h.hypothesisOrParsed.ifBlank { null })
+            else -> jp.pocketmagi.engine.Deliberation.Redo()
+        }
+        start(h.question, redo = true, redoWith = r)
     }
 
     /** Starts a deliberation; false when it could not start (the input is then kept). */
-    fun start(question: String, redo: Boolean = false): Boolean {
+    fun start(question: String, redo: Boolean = false, redoWith: jp.pocketmagi.engine.Deliberation.Redo? = null): Boolean {
         if (deliberation.state.value.phase == Phase.RUNNING) return false
         if (verifying) {
             message.value = "更新したモデルを動作確認中です。数十秒後にもう一度押してください"
@@ -393,13 +401,19 @@ class MagiViewModel(app: Application) : AndroidViewModel(app) {
         runJob = jp.pocketmagi.engine.Session.scope.launch {
             jp.pocketmagi.engine.Session.markRunning(app, q, System.currentTimeMillis())
             val prior = if (redo) null else followUp.value
-            deliberation.run(q, runSettings, prior)
+            deliberation.run(q, runSettings, prior, redoWith)
             jp.pocketmagi.engine.Session.clearRunning(app)
             val st = deliberation.state.value
             // a finished result can be continued by the next question
             if (st.phase == Phase.DONE && st.integrated.isNotBlank()) followUp.value = jp.pocketmagi.engine.FollowUp.of(st, prior)
             if (st.phase == Phase.DONE && runSettings.historyEnabled) {
-                val label = when { redo -> "やり直し"; prior != null -> "追加審議"; else -> "" }
+                val label = when {
+                    redoWith?.hypothesis != null -> "仮説を変更"
+                    redoWith?.avoid != null -> "別の仮説"
+                    redo -> "もう一度"
+                    prior != null -> "追加審議"
+                    else -> ""
+                }
                 withContext(Dispatchers.IO) {
                     hist.add(st, label, runSettings.historyMaxCount, runSettings.historyMaxDays)
                 }

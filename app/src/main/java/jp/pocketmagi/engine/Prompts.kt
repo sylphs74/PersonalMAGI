@@ -219,6 +219,10 @@ object Prompts {
         return years.isNotEmpty() && years.max() < now && PREDICTIVE.containsMatchIn(h)
     }
 
+    /** Asks for a hypothesis other than the one judged last time. */
+    fun differentNote(previous: String): String =
+        "\n\n注意: 前回の審議では仮説「${previous.trim()}」を検討した。今回はそれとは異なる立場か観点から、別の仮説を一文で書くこと（同じ主張の言い換えは不可）。"
+
     fun staleNote(h: String): String =
         "\n\n注意: 今日は${WebResearch.today()}。前の仮説「$h」は過去の年を未来の予定として書いていて誤り。" +
             "今日の日付と調査資料の日付を基準に、今の時点での答えを一文で書き直すこと。"

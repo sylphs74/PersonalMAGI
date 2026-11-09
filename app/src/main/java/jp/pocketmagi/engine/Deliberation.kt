@@ -286,7 +286,13 @@ class Deliberation(
             settings.useGpu && b.spec.name !in settings.gpuDeny)
     }
 
-    suspend fun run(question: String, settings: MagiSettings, followUp: FollowUp? = null) {
+    /**
+     * Running a recorded question again: with a hypothesis the user wrote ([hypothesis]: the proposer
+     * only gathers material), or with a new one that differs from the earlier [avoid].
+     */
+    data class Redo(val hypothesis: String? = null, val avoid: String? = null)
+
+    suspend fun run(question: String, settings: MagiSettings, followUp: FollowUp? = null, redo: Redo? = null) {
         val baseCtx = 3072
         val t0 = System.currentTimeMillis()
         cloudIn = 0; cloudOut = 0; cloudYen = 0.0; costRecorded = false
@@ -321,10 +327,13 @@ class Deliberation(
             var hypothesis: String? = null
             var researchText: String? = null
             val pBrain = brains[SageRole.PROPOSER]
+            val fixedHyp = redo?.hypothesis?.trim()?.takeIf { it.isNotBlank() }
+            val avoidNote = redo?.avoid?.trim()?.takeIf { it.isNotBlank() && fixedHyp == null }?.let { Prompts.differentNote(it) } ?: ""
             if (pBrain != null) { try {
                 checkCancel()
                 var pBackend = ""
-                if (pBrain is Brain.Local) {
+                // a hypothesis written by the user needs no model: the proposer only gathers material
+                if (pBrain is Brain.Local && fixedHyp == null) {
                     setProposer { it.copy(status = SageStatus.LOADING) }
                     stage("PROPOSER: ${pBrain.spec.name} を起動中")
                     pBackend = loadLocal(pBrain, SageRole.PROPOSER, settings, 4096)
@@ -352,9 +361,10 @@ class Deliberation(
                     }
                 }
                 setProposer { it.copy(status = SageStatus.THINKING) }
-                stage("PROPOSER: 仮説を検討中")
-                val (first, _) = pAsk(Prompts.PROPOSE_SYSTEM, Prompts.proposeUser(question, visual, null, settings.webEnabled),
-                    120, "") { t -> setProposer { it.copy(text = t) } }
+                stage(if (fixedHyp != null) "PROPOSER: 指定の仮説の材料を調査中" else "PROPOSER: 仮説を検討中")
+                val first = if (fixedHyp != null) "仮説: $fixedHyp" else pAsk(Prompts.PROPOSE_SYSTEM,
+                    Prompts.proposeUser(question, visual, null, settings.webEnabled) + avoidNote,
+                    120, "") { t -> setProposer { it.copy(text = t) } }.first
                 checkCancel()
                 val plan = Prompts.parsePlan(Prompts.clean(first))
                 val log = StringBuilder()
@@ -369,9 +379,24 @@ class Deliberation(
                 if (lookups.isNotEmpty()) addResearch(WebResearch.ordered(found))
                 val finance = WebResearch.isFinance(question)
                 var stats = ""
-                if (found.isNotEmpty()) {
+                if (found.isNotEmpty() && fixedHyp != null) {
+                    hypothesis = fixedHyp
+                    if (finance) {
+                        val have = found.filter { it.kind == "株価" }.map { it.title }
+                        val names = (Prompts.parseStocks(first) + WebResearch.codesIn(found))
+                            .filter { n -> have.none { it.contains(n) } }.distinct().take((3 - have.size).coerceAtLeast(0))
+                        for (n in names) {
+                            checkCancel()
+                            stage("PROPOSER: 株価を確認中（${n.take(16)}）")
+                            log.append("調査: 株価 $n\n")
+                            found += WebResearch.run("株価", n)
+                        }
+                        addResearch(found)
+                    }
+                    researchText = cite(found)
+                } else if (found.isNotEmpty()) {
                     stage("PROPOSER: 調査結果から仮説を作成中")
-                    var (second, st2) = pAsk(Prompts.PROPOSE_SYSTEM, Prompts.proposeWithResearch(question, WebResearch.asText(found, 2200), finance, visual),
+                    var (second, st2) = pAsk(Prompts.PROPOSE_SYSTEM, Prompts.proposeWithResearch(question, WebResearch.asText(found, 2200), finance, visual) + avoidNote,
                         if (finance) 160 else 100, Prompts.PROPOSE_PREFILL) { }
                     checkCancel()
                     var cleaned = Prompts.clean(second)
@@ -380,7 +405,7 @@ class Deliberation(
                     if (Prompts.isStale(hypothesis)) {
                         stage("PROPOSER: 今日の日付で仮説を作り直し中")
                         val again = pAsk(Prompts.PROPOSE_SYSTEM,
-                            Prompts.proposeWithResearch(question, WebResearch.asText(found, 2200), finance, visual) + Prompts.staleNote(hypothesis!!),
+                            Prompts.proposeWithResearch(question, WebResearch.asText(found, 2200), finance, visual) + avoidNote + Prompts.staleNote(hypothesis!!),
                             if (finance) 160 else 100, Prompts.PROPOSE_PREFILL) { }
                         checkCancel()
                         second = again.first; st2 = again.second
@@ -406,13 +431,14 @@ class Deliberation(
                 } else if (lookups.isNotEmpty()) log.append("（調べた結果が得られませんでした）\n")
                 if (!Prompts.isRealHypothesis(hypothesis)) hypothesis = plan.hypothesis
                     ?: Prompts.clean(first).lines().firstOrNull { it.isNotBlank() && !it.startsWith("調査") }?.trim()
-                if (stats.isBlank()) stats = if (pb is Brain.Local) LlamaBridge.lastStats() else pb.label
+                if (stats.isBlank()) stats = if (fixedHyp != null) "仮説は指定" else if (pb is Brain.Local) LlamaBridge.lastStats() else pb.label
                 // plans ("〜を調べる"), platitudes and stale-dated claims are not answers: the sages then answer directly
-                val h = hypothesis?.takeIf { Prompts.isRealHypothesis(it) && !Prompts.isStale(it) }
+                val h = fixedHyp ?: hypothesis?.takeIf { Prompts.isRealHypothesis(it) && !Prompts.isStale(it) }
                 hypothesis = h
                 _state.update { it.copy(hypothesis = h ?: "") }
                 setProposer {
-                    it.copy(status = SageStatus.DONE, text = (log.toString() + "仮説: " + (h ?: "なし（3賢者が質問に直接答えます）")).trim(),
+                    it.copy(status = SageStatus.DONE, text = (log.toString() + (if (avoidNote.isNotEmpty()) "前回と別の仮説を作成\n" else "") +
+                        "仮説: " + (h ?: "なし（3賢者が質問に直接答えます）") + (if (fixedHyp != null) "（指定）" else "")).trim(),
                         stats = if (pBackend.isNotBlank()) "$pBackend\n$stats" else stats)
                 }
                 if (pb is Brain.Local) LlamaBridge.unload()
@@ -422,11 +448,13 @@ class Deliberation(
                 // no hypothesis is not fatal: the sages then answer the question directly
                 if (_state.value.phase == Phase.CANCELLED) throw CancellationException("cancelled")
                 try { LlamaBridge.unload() } catch (_: Exception) {}
-                hypothesis = null
-                _state.update { it.copy(hypothesis = "") }
+                hypothesis = fixedHyp
+                _state.update { it.copy(hypothesis = fixedHyp ?: "") }
                 setProposer { it.copy(status = SageStatus.ERROR, error = e.message,
                     text = (it.text + "\n仮説なし（${e.message?.take(80)}）").trim()) }
             } }
+            // without a proposer, a hypothesis the user wrote still goes to the sages
+            if (pBrain == null && fixedHyp != null) { hypothesis = fixedHyp; _state.update { it.copy(hypothesis = fixedHyp) } }
             // Perplexity's citations may have been added while it worked
             if (researchText == null && _state.value.research.isNotEmpty()) researchText = cite(_state.value.research)
             // room for what a sage may look up by itself when it lacks material

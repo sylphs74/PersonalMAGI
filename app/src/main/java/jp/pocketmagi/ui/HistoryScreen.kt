@@ -55,6 +55,7 @@ fun HistoryScreen(vm: MagiViewModel) {
     var selected by remember { mutableStateOf(setOf<Long>()) }
     val selecting = selected.isNotEmpty()
     var confirmDelete by remember { mutableStateOf(false) }
+    var redoOf by remember { mutableStateOf<HistoryEntry?>(null) }
     androidx.activity.compose.BackHandler(enabled = selecting) { selected = emptySet() }
     val q = query.trim()
     val list = all.filter { h ->
@@ -122,6 +123,45 @@ fun HistoryScreen(vm: MagiViewModel) {
         dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("やめる") } },
     )
 
+    // もう一度: the same question, with the hypothesis rewritten by hand or a new one from the proposer
+    redoOf?.let { h ->
+        val prev = h.hypothesisOrParsed
+        var text by remember(h.time) { mutableStateOf(prev) }
+        val edited = text.isNotBlank() && text.trim() != prev
+        AlertDialog(
+            onDismissRequest = { redoOf = null },
+            title = { Text("もう一度審議") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(h.question, style = MaterialTheme.typography.bodyMedium, maxLines = 4, overflow = TextOverflow.Ellipsis)
+                    androidx.compose.material3.OutlinedTextField(
+                        value = text, onValueChange = { text = it },
+                        label = { Text("仮説（書き換えると、その仮説で審議）") },
+                        placeholder = { Text("空欄なら提訴役が仮説を作ります") },
+                        modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 6,
+                    )
+                    Text(
+                        if (prev.isNotBlank()) "「別の仮説で」は、提訴役が前回と違う立場の仮説を作り直します。" else "前回は仮説なしで審議しました。",
+                        style = MaterialTheme.typography.labelSmall, color = MagiColors.TextDim,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = text.isNotBlank(), onClick = { redoOf = null; vm.redeliberate(h, hypothesis = text) }) {
+                    Text(if (edited) "この仮説で審議" else "同じ仮説で審議")
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = { redoOf = null }) { Text("やめる") }
+                    TextButton(onClick = { redoOf = null; vm.redeliberate(h, differ = true) }) {
+                        Text(if (prev.isNotBlank()) "別の仮説で" else "仮説から作る")
+                    }
+                }
+            },
+        )
+    }
+
     open?.let { h ->
         AlertDialog(
             onDismissRequest = { open = null },
@@ -129,7 +169,7 @@ fun HistoryScreen(vm: MagiViewModel) {
             dismissButton = {
                 Row(Modifier.horizontalScroll(rememberScrollState())) {
                     TextButton(onClick = { vm.deleteHistory(h.time); open = null }) { Text("削除", color = MagiColors.Reject) }
-                    TextButton(onClick = { open = null; vm.redeliberate(h) }) { Text("もう一度審議") }
+                    TextButton(onClick = { open = null; redoOf = h }) { Text("もう一度") }
                     TextButton(onClick = { open = null; vm.followUpFrom(h) }) { Text("追加審議") }
                     val ctx = androidx.compose.ui.platform.LocalContext.current
                     TextButton(onClick = {

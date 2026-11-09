@@ -22,7 +22,14 @@ data class HistoryEntry(
     val followUpOf: String = "",
     /** Starred: listed first and never removed by the retention rules. */
     val favorite: Boolean = false,
-)
+    /** The hypothesis the sages judged, or "" (older records: read from the result's first line). */
+    val hypothesis: String = "",
+) {
+    val hypothesisOrParsed: String
+        get() = hypothesis.ifBlank {
+            integrated.lineSequence().take(3).firstOrNull { it.startsWith("仮説: ") }?.removePrefix("仮説: ")?.trim() ?: ""
+        }
+}
 
 class HistoryStore(context: Context) {
     private val file = File(context.filesDir, "history.json")
@@ -52,6 +59,7 @@ class HistoryStore(context: Context) {
                     } ?: emptyList(),
                     followUpOf = o.optString("followUpOf"),
                     favorite = o.optBoolean("favorite"),
+                    hypothesis = o.optString("hypothesis"),
                 )
             }
         } catch (e: Exception) {
@@ -76,6 +84,7 @@ class HistoryStore(context: Context) {
                 elapsedMs = st.elapsedMs,
                 sources = st.research.map { it.title to it.url },
                 followUpOf = st.followUpOf,
+                hypothesis = st.hypothesis,
             )
         ) + load()
         write(retain(list, maxCount, maxDays))
@@ -119,6 +128,7 @@ class HistoryStore(context: Context) {
                 put("elapsedMs", h.elapsedMs)
                 put("followUpOf", h.followUpOf)
                 put("favorite", h.favorite)
+                if (h.hypothesis.isNotBlank()) put("hypothesis", h.hypothesis)
                 put("sources", JSONArray().apply { h.sources.forEach { (t, u) -> put(JSONObject().put("title", t).put("url", u)) } })
                 put("opinions", JSONArray().apply {
                     h.opinions.forEach { (c, v, t) -> put(JSONObject().put("code", c).put("verdict", v).put("text", t)) }

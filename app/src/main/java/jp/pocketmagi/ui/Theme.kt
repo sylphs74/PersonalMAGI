@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 
 /** One dark palette. Roles keep the names the screens already use. */
@@ -109,15 +110,25 @@ private fun typography(body: FontFamily, head: FontFamily, custom: Boolean): Typ
         bodySmall = TextStyle(fontFamily = body, fontSize = 13.sp, lineHeight = 19.sp),
     )
     if (!custom) return t
-    // fonts with tall ascenders overlap the next line with fixed line heights: let the font decide
-    fun f(s: TextStyle) = s.copy(lineHeight = androidx.compose.ui.unit.TextUnit.Unspecified,
-        platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = true))
+    // Line height in proportion to the font size, the glyphs centred in it. Neither the font's own
+    // metrics (some fonts carry a huge line gap and stretch every line) nor a fixed height in sp
+    // (tall glyphs then overlap the next line) decide the spacing.
+    fun f(s: TextStyle, em: Float) = s.copy(
+        lineHeight = em.em,
+        lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
+            alignment = androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
+            trim = androidx.compose.ui.text.style.LineHeightStyle.Trim.None,
+        ),
+        platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false),
+    )
+    val tight = 1.25f
+    val text = 1.45f
     return Typography(
-        displayLarge = f(t.displayLarge), displayMedium = f(t.displayMedium), displaySmall = f(t.displaySmall),
-        headlineLarge = f(t.headlineLarge), headlineMedium = f(t.headlineMedium), headlineSmall = f(t.headlineSmall),
-        titleLarge = f(t.titleLarge), titleMedium = f(t.titleMedium), titleSmall = f(t.titleSmall),
-        bodyLarge = f(t.bodyLarge), bodyMedium = f(t.bodyMedium), bodySmall = f(t.bodySmall),
-        labelLarge = f(t.labelLarge), labelMedium = f(t.labelMedium), labelSmall = f(t.labelSmall),
+        displayLarge = f(t.displayLarge, tight), displayMedium = f(t.displayMedium, tight), displaySmall = f(t.displaySmall, tight),
+        headlineLarge = f(t.headlineLarge, tight), headlineMedium = f(t.headlineMedium, tight), headlineSmall = f(t.headlineSmall, tight),
+        titleLarge = f(t.titleLarge, tight), titleMedium = f(t.titleMedium, tight), titleSmall = f(t.titleSmall, tight),
+        bodyLarge = f(t.bodyLarge, text), bodyMedium = f(t.bodyMedium, text), bodySmall = f(t.bodySmall, text),
+        labelLarge = f(t.labelLarge, tight), labelMedium = f(t.labelMedium, tight), labelSmall = f(t.labelSmall, tight),
     )
 }
 

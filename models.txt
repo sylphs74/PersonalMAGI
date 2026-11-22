@@ -1,0 +1,20 @@
+gemma2-swallow-2b  mmnga/Gemma-2-Llama-Swallow-2b-it-v0.1-gguf
+    model : Gemma-2-Llama-Swallow-2b-it-v0.1-Q4_0.gguf (1.63 GB)
+    family: ok {'ver': '2', 'sub': '0.1'}
+sarashina2.2-3b    mmnga/sarashina2.2-3b-instruct-v0.1-gguf
+    model : sarashina2.2-3b-instruct-v0.1-Q4_K_M.gguf (2.07 GB)
+    family: ok {'ver': '2.2', 'sub': '0.1'}
+swallow-8b         mmnga/Llama-3.1-Swallow-8B-Instruct-v0.5-gguf
+    model : Llama-3.1-Swallow-8B-Instruct-v0.5-Q4_0.gguf (4.66 GB)
+    family: ok {'ver': '3.1', 'sub': '0.5'}
+llm-jp-3.1-1.8b    mmnga/llm-jp-3.1-1.8b-instruct4-gguf
+    model : llm-jp-3.1-1.8b-instruct4-Q4_K_M.gguf (1.16 GB)
+    family: ok {'ver': '3.1', 'sub': '4'}
+llm-jp-3-7.2b      mmnga/llm-jp-3-7.2b-instruct3-gguf
+    model : llm-jp-3-7.2b-instruct3-Q4_0.gguf (4.21 GB)
+    family: ok {'ver': '3', 'sub': '3'}
+rakutenai-2.0-mini mmnga/RakutenAI-2.0-mini-instruct-gguf
+    model : RakutenAI-2.0-mini-instruct-Q4_K_M.gguf (0.94 GB)
+    family: ok {'ver': '2.0'}
+rakutenai-7b       mmnga/RakutenAI-7B-instruct-gguf
+    model : RakutenAI-7B-instruct-q4_0.gguf (4.20 GB)

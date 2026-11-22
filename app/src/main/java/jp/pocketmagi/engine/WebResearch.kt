@@ -48,6 +48,34 @@ object WebResearch {
     private val FINANCE_Q = Regex("株|銘柄|NISA|ニーサ|投資|配当|優待|証券|上場|決算|ETF")
     fun isFinance(question: String) = FINANCE_Q.containsMatchIn(question)
 
+    private val GENERIC_KANA = setOf(
+        "おすすめ", "オススメ", "ランキング", "メリット", "デメリット", "ポイント", "タイプ", "セット", "ニュース", "サイト",
+        "レビュー", "コスパ", "ブランド", "メーカー", "アップデート", "バージョン", "リリース", "スマホ", "ネット", "ベスト",
+        "トップ", "シリーズ", "モデル", "サービス", "プラン", "コース", "メニュー", "アイテム", "グッズ", "セール", "イメージ",
+    )
+    private val GENERIC_LATIN = setOf("the", "and", "for", "best", "top", "ok", "pc", "ai", "web", "app", "vs")
+
+    /**
+     * Words that name what the question is about — katakana words and Latin/number tokens such as
+     * シャグ or iPhone — used to drop search results about something else ("辛口 後味すっきり" also
+     * finds sake when the question is about tobacco).
+     */
+    fun anchors(question: String): List<String> {
+        val q = urlsIn(question).fold(question) { acc, u -> acc.replace(u, " ") }
+        val kana = Regex("[ァ-ヴヵヶ][ァ-ヴヵヶー]+").findAll(q).map { it.value }.filter { it.length >= 2 && it !in GENERIC_KANA }
+        val latin = Regex("[A-Za-z][A-Za-z0-9+.-]+").findAll(q).map { it.value }.filter { it.lowercase() !in GENERIC_LATIN }
+        return (kana + latin).distinct().toList()
+    }
+
+    /** Search results that mention what the question is about (data sources and fetched pages always stay). */
+    fun onTopic(question: String, materials: List<Material>): List<Material> {
+        val a = anchors(question)
+        if (a.isEmpty()) return materials
+        return materials.filter { m ->
+            m.kind in setOf("株価", "天気", "法令", "GitHub", "ページ") || a.any { (m.title + "\n" + m.text).contains(it, ignoreCase = true) }
+        }
+    }
+
     /** Price data first, then news, encyclopedia and general pages: the order the sages read them in. */
     fun ordered(materials: List<Material>): List<Material> = materials.distinctBy { it.url + it.title }
         .sortedBy { when (it.kind) { "ページ", "株価", "天気", "法令", "GitHub" -> 0; "ニュース" -> 1; "事典" -> 2; else -> 3 } }

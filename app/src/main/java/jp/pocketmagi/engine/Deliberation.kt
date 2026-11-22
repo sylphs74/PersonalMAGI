@@ -388,7 +388,10 @@ class Deliberation(
                     checkCancel()
                     stage("PROPOSER: Web調査中（$kind ${q.take(20)}）")
                     log.append("調査: $kind $q\n")
-                    found += WebResearch.run(kind, q)
+                    val got = WebResearch.run(kind, q)
+                    val kept = WebResearch.onTopic(question, got)
+                    if (kept.size < got.size) log.append("（審議事項と関係のない結果 ${got.size - kept.size}件を除外）\n")
+                    found += kept
                 }
                 if (lookups.isNotEmpty()) addResearch(WebResearch.ordered(found))
                 val finance = WebResearch.isFinance(question)
@@ -549,7 +552,7 @@ class Deliberation(
                         for ((kind, q) in wants) {
                             checkCancel()
                             if (b is Brain.Local) stage("${role.code}: 調査中（$kind ${q.take(20)}）")
-                            mine += WebResearch.run(kind, q)
+                            mine += WebResearch.onTopic(question, WebResearch.run(kind, q))
                         }
                         val known = (_state.value.research + synchronized(extra) { extra.toList() }).map { it.url + it.title }.toSet()
                         val fresh = mine.filter { (it.url + it.title) !in known }

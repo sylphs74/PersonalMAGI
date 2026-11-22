@@ -24,6 +24,9 @@ object Prompts {
 - 【調査資料】を根拠にした文の末尾には、その資料の番号を [1] のように付ける
 - 質問が具体的な企業・製品・技術・人物などを求めているなら、固有名詞を挙げて具体的に答える
 - 自分の知識は学習時点のもので古い可能性がある。天気・ニュース・価格など今の情報は、資料にない限り分からないものとして扱い、作らない
+- 審議事項に好みや条件（辛口、後味がすっきり、予算など）が書かれていれば、その条件に合うものを具体的に答える。「好みによる」「人それぞれ」で済ませない
+- 【調査資料】のうち、審議事項の対象と違うもの（シャグの質問なのに日本酒の資料など）は無視し、触れない
+- 製品名・銘柄名・作品名のような変わりにくい知識は、資料になくても自分の知識から挙げてよい（価格・在庫・最新の動きは除く）
 - 見出し・太字・箇条書き記号（#、*、-、|）は使わない。普通の文章で書く"""
 
     /** Rules when the neutral proposer has put forward a hypothesis to judge. */
@@ -36,7 +39,8 @@ object Prompts {
 
 守ること:
 - 承認は「仮説は妥当」、否決は「仮説は誤りで、対案の方が正しい」という意味。判定と回答・理由の向きを必ずそろえる（否決なのに仮説に沿った回答を書かない）
-- 判断材料がなく妥当とも誤りとも言えないときだけ「判定: 保留」とし、回答に「判断材料不足」と書く
+- 仮説がおすすめや候補を挙げているなら、挙がったものが審議事項の条件に合うかで判定する。自分の候補の方が合うと考えるなら否決し、回答に具体名の対案を書く
+- 判断材料がなく妥当とも誤りとも言えないときだけ「判定: 保留」とし、回答に「判断材料不足」と書く。自分の知識で判断できるなら保留にしない
 """ + COMMON_RULES + """
 
 例:
@@ -206,7 +210,12 @@ object Prompts {
             if (!WebResearch.isFinance(q) && out.none { it.first == "事典" }) out += "事典" to fallback
             if (out.none { it.first == "ウェブ" }) out += "ウェブ" to fallback
         }
-        return out.take(5)
+        // every search names what the question is about, or "辛口 後味すっきり" finds sake for a tobacco question
+        val anchors = WebResearch.anchors(q)
+        return out.take(5).map { (kind, query) ->
+            if (kind in setOf("ウェブ", "ニュース") && anchors.isNotEmpty() && anchors.none { query.contains(it, ignoreCase = true) })
+                kind to (anchors.first() + " " + query).take(60) else kind to query
+        }
     }
 
     private val LAW_Q = Regex("法律|法令|条文|違法|合法|罰則|規制|法改正|施行|条例|政令|省令|民法|刑法|労働基準|著作権|個人情報保護|道路交通法|税法")
